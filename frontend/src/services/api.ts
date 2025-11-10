@@ -88,4 +88,15 @@ export const fetchReconciliation = async (month: string): Promise<Reconciliation
   return normalizeReconciliation(raw)
 }
 
+export interface ChatMessage {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+}
+
+export const askChat = async (month: string, question: string): Promise<string> => {
+  const res = await api.post<{ answer: string }>('/chat/ask', { month, question })
+  return res.data.answer
+}
+
 export default api
