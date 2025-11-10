@@ -130,10 +130,11 @@ async def answer_groq(db: Session, month: str, question: str, recon_rows: List[D
         f"Facts (ground truth):\n{format_facts_as_text(facts)}\n\n"
         "Explain reconciliation mismatches if delta_sum != 0 by referencing fees and days."
     )
-    model = 'llama-3.1-8b-instant'
+    # Choose model from settings (backend env), defaulting to Groq's recommended 70B versatile
+    model = getattr(settings, 'llm_model', None) or 'llama-3.3-70b-versatile'
     try:
         return await _call_openai_compatible(model, system, user)
-    except Exception as e:
+    except Exception:
         # Fallback: return a concise grounded summary
         return (
             f"[LLM unavailable] Grounded summary for {facts['month']}: Gross {facts['gross']:.2f}, "

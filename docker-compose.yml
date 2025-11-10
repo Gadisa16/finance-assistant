@@ -17,6 +17,7 @@ services:
       DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://postgres:postgres@db:5432/finance}
       LLM_API_URL: ${LLM_API_URL:-stub://local}
       LLM_API_KEY: ${LLM_API_KEY:-stub}
+      LLM_MODEL: ${LLM_MODEL:-llama-3.3-70b-versatile}
       UPLOAD_DIR: ${UPLOAD_DIR:-/data/uploads}
     volumes:
       - ./backend/app:/app/app

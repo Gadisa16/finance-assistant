@@ -1,16 +1,42 @@
-import { useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { askChat, ChatMessage } from '../services/api'
 
 interface ChatWidgetProps {
   month: string
 }
 
-export default function ChatWidget({ month }: ChatWidgetProps) {
+export default function ChatWidget({ month }: Readonly<ChatWidgetProps>) {
   const [open, setOpen] = useState(false)
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const inputRef = useRef<HTMLInputElement | null>(null)
+  const storageKey = useMemo(() => `finance-chat:${month}`, [month])
+
+  // Load from localStorage when month changes
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(storageKey)
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (Array.isArray(parsed)) setMessages(parsed)
+        else setMessages([])
+      } else {
+        setMessages([])
+      }
+    } catch {
+      setMessages([])
+    }
+  }, [storageKey])
+
+  // Persist to localStorage on change
+  useEffect(() => {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(messages))
+    } catch {
+      // ignore quota/security errors
+    }
+  }, [messages, storageKey])
 
   async function send() {
     if (!input.trim() || loading) return
@@ -31,6 +57,11 @@ export default function ChatWidget({ month }: ChatWidgetProps) {
     }
   }
 
+  function clearChat() {
+    setMessages([])
+    try { localStorage.removeItem(storageKey) } catch { /* ignore */ }
+  }
+
   return (
     <div className="fixed bottom-4 right-4 z-50 text-sm">
       {!open && (
@@ -46,7 +77,12 @@ export default function ChatWidget({ month }: ChatWidgetProps) {
         <div className="w-80 h-96 bg-white border border-gray-300 rounded-lg shadow-xl flex flex-col overflow-hidden">
           <div className="flex items-center justify-between px-3 py-2 bg-indigo-600 text-white text-xs">
             <span className="font-semibold">Finance Chat (Month {month})</span>
-            <button onClick={() => setOpen(false)} aria-label="Close" className="hover:opacity-80">✕</button>
+            <div className="flex items-center gap-2">
+              {messages.length > 0 && (
+                <button onClick={clearChat} className="px-2 py-0.5 rounded bg-indigo-500 hover:bg-indigo-400" aria-label="Clear chat">Clear</button>
+              )}
+              <button onClick={() => setOpen(false)} aria-label="Close" className="hover:opacity-80">✕</button>
+            </div>
           </div>
           <div className="flex-1 p-3 overflow-y-auto space-y-3 bg-gray-50">
             {messages.length === 0 && (
