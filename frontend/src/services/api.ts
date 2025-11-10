@@ -3,8 +3,8 @@ import axios, { AxiosError, AxiosResponse } from 'axios'
 // Resolve API base URL robustly for both Docker and local dev
 const envUrl: string | undefined = (import.meta as any)?.env?.VITE_API_URL
 let baseURL = envUrl
-if (!baseURL && typeof window !== 'undefined') {
-  const host = window.location.hostname
+if (!baseURL && typeof globalThis !== 'undefined') {
+  const host = (globalThis as any)?.location?.hostname
   // If opened from host browser (localhost), default to backend on localhost
   // Otherwise (rare), keep Docker service fallback
   baseURL = (host === 'localhost' || host === '127.0.0.1')
@@ -61,7 +61,7 @@ function normalizeReconciliation(arr: any[]): ReconciliationRow[] {
     date: String(r?.date ?? r?.day ?? r?.ds ?? ''),
     sales_card: Number(r?.sales_card ?? r?.card ?? r?.card_gross ?? 0),
     bank_tpa: Number(r?.bank_tpa ?? r?.tpa ?? 0),
-    fees: r?.fees != null ? Number(r?.fees) : undefined,
+    fees: (r?.fees === null || r?.fees === undefined) ? undefined : Number(r?.fees),
     delta: Number(r?.delta ?? 0),
     detail: r?.detail ?? r?.detail_json,
   })).filter((r) => r.date)
@@ -86,6 +86,26 @@ export const fetchVatReport = async (month: string): Promise<VatReport> => {
 export const fetchReconciliation = async (month: string): Promise<ReconciliationRow[]> => {
   const raw = await get<any[]>('/recon/card', { month })
   return normalizeReconciliation(raw)
+}
+
+// Top lists
+export interface TopProduct { product: string; gross: number }
+export interface TopCustomer { customer: string; gross: number }
+
+export const fetchTopProducts = async (month: string, limit: number = 10): Promise<TopProduct[]> => {
+  const raw = await get<any[]>('/kpi/top-products', { month, limit })
+  return (Array.isArray(raw) ? raw : []).map(r => ({
+    product: String(r?.product ?? ''),
+    gross: Number(r?.gross ?? 0)
+  })).filter(r => r.product)
+}
+
+export const fetchTopCustomers = async (month: string, limit: number = 10): Promise<TopCustomer[]> => {
+  const raw = await get<any[]>('/kpi/top-customers', { month, limit })
+  return (Array.isArray(raw) ? raw : []).map(r => ({
+    customer: String(r?.customer ?? ''),
+    gross: Number(r?.gross ?? 0)
+  })).filter(r => r.customer)
 }
 
 export interface ChatMessage {
