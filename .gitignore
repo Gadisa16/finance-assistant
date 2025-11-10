@@ -6,4 +6,4 @@ echo ".env" >> .gitignore
 
 # Commit the changes
 git add .gitignore
-git commit -m "Remove .env from tracking and add to gitignore"
+git commit -m "Remove .env from tracking and add to gitignore".env
