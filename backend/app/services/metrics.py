@@ -1,4 +1,3 @@
-from sqlalchemy import func, case
 from datetime import date
 from typing import List, Dict, Optional
 

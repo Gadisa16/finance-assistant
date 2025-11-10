@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
+from sqlalchemy.sql import case
 from ..models.models import NormalizedSales, BankTx
 
 REPORT_TEMPLATE = (
@@ -20,8 +21,8 @@ def monthly_report(db: Session, month: str, recon_rows: list[dict]):
         func.sum(NormalizedSales.net_amount).label('net'),
         func.count(func.distinct(NormalizedSales.invoice_number)
                    ).label('invoice_count'),
-        func.sum(func.case((NormalizedSales.payment_method == 'Cartão Multicaixa',
-                 NormalizedSales.gross_amount), else_=0)).label('card')
+        func.sum(case((NormalizedSales.payment_method == 'Cartão Multicaixa',
+                       NormalizedSales.gross_amount), else_=0)).label('card')
     ).filter(func.to_char(NormalizedSales.date, 'MM') == month).first()
     vat_rows = db.query(NormalizedSales.vat_rate, func.sum(NormalizedSales.vat_amount)).filter(
         func.to_char(NormalizedSales.date, 'MM') == month).group_by(NormalizedSales.vat_rate).all()
