@@ -99,4 +99,29 @@ export const askChat = async (month: string, question: string): Promise<string> 
   return res.data.answer
 }
 
+export interface UploadResult {
+  sales_rows: number
+  bank_rows: number
+  month: string
+}
+
+export const uploadFiles = async (
+  month: string,
+  salesFile: File,
+  bankFile: File
+): Promise<UploadResult> => {
+  const form = new FormData()
+  form.append('sales_excel', salesFile)
+  form.append('bank_pdf', bankFile)
+  const res = await api.post<UploadResult>(`/files/upload`, form, {
+    params: { month },
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 60000, // allow heavy Excel/PDF parsing
+    onUploadProgress: (evt) => {
+      // optional hook: consumers can attach a listener by patching api.interceptors if needed
+    }
+  })
+  return res.data
+}
+
 export default api
