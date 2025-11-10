@@ -1,9 +1,1 @@
-# Remove .env from git tracking but keep it locally
-git rm --cached .env
-
-# Add .env to .gitignore (if not already there)
-echo ".env" >> .gitignore
-
-# Commit the changes
-git add .gitignore
-git commit -m "Remove .env from tracking and add to gitignore".env
+.env.env
