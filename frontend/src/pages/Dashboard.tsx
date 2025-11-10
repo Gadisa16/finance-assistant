@@ -1,9 +1,9 @@
 import { useState } from 'react'
+import ChatWidget from '../components/ChatWidget'
 import DailyChart from '../components/DailyChart'
 import KpiSummary from '../components/KpiSummary'
 import ReconciliationTable from '../components/ReconciliationTable'
 import VatReport from '../components/VatReport'
-import ChatWidget from '../components/ChatWidget'
 
 export default function Dashboard() {
   const [month, setMonth] = useState<string>('09')
