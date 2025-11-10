@@ -33,6 +33,7 @@ services:
     depends_on:
       - backend
     environment:
+      # The frontend assets are served to the HOST browser; use localhost to reach backend from host.
       VITE_API_URL: http://localhost:8000
     ports:
       - "5173:5173"

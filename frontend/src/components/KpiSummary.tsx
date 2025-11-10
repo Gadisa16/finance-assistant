@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { fetchKpiSummary } from '../services/api';
 
-export default function KpiSummary() {
+export default function KpiSummary({ month }: Readonly<{ month: string }>) {
   const [data, setData] = useState<KpiSummary | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -10,12 +10,12 @@ export default function KpiSummary() {
     let cancelled = false
     setLoading(true)
     setError(null)
-    fetchKpiSummary()
+    fetchKpiSummary(month)
       .then((res: KpiSummary) => { if (!cancelled) setData(res) })
       .catch((err: unknown) => { if (!cancelled) setError((err as Error)?.message || 'Failed to load KPI summary') })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
-  }, [])
+  }, [month])
 
   if (loading) return <div className="p-3 border border-gray-200 rounded-lg bg-white mt-3">Loading KPI summary…</div>
   if (error) return <div className="p-3 border border-red-300 text-red-700 rounded-lg bg-white mt-3">Error: {String(error)}</div>

@@ -1,6 +1,16 @@
 import axios, { AxiosError, AxiosResponse } from 'axios'
 
-const baseURL = (import.meta as any)?.env?.VITE_API_URL || 'http://backend:8000'
+// Resolve API base URL robustly for both Docker and local dev
+const envUrl: string | undefined = (import.meta as any)?.env?.VITE_API_URL
+let baseURL = envUrl
+if (!baseURL && typeof window !== 'undefined') {
+  const host = window.location.hostname
+  // If opened from host browser (localhost), default to backend on localhost
+  // Otherwise (rare), keep Docker service fallback
+  baseURL = (host === 'localhost' || host === '127.0.0.1')
+    ? 'http://localhost:8000'
+    : 'http://backend:8000'
+}
 
 export const api = axios.create({
   baseURL,
@@ -58,8 +68,8 @@ function normalizeReconciliation(arr: any[]): ReconciliationRow[] {
 }
 
 // Endpoint helpers (typed)
-export const fetchKpiSummary = async (): Promise<KpiSummary> => {
-  const raw = await get<any>('/kpi/summary')
+export const fetchKpiSummary = async (month: string): Promise<KpiSummary> => {
+  const raw = await get<any>('/kpi/summary', { month })
   return normalizeKpiSummary(raw)
 }
 
@@ -68,8 +78,8 @@ export const fetchKpiDaily = async (month: string): Promise<DailyKpiItem[]> => {
   return normalizeDailyKpi(raw)
 }
 
-export const fetchVatReport = async (): Promise<VatReport> => {
-  const raw = await get<any[]>('/vat/report')
+export const fetchVatReport = async (month: string): Promise<VatReport> => {
+  const raw = await get<any[]>('/vat/report', { month })
   return normalizeVatReport(raw)
 }
 

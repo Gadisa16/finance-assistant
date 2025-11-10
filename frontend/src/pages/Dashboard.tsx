@@ -23,9 +23,9 @@ export default function Dashboard() {
         </select>
       </label>
 
-      <KpiSummary />
-      <DailyChart month={month} />
-      <VatReport />
+  <KpiSummary month={month} />
+  <DailyChart month={month} />
+  <VatReport month={month} />
       <ReconciliationTable month={month} />
     </div>
   )

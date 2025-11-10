@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { fetchVatReport } from '../services/api'
 
-export default function VatReport() {
+export default function VatReport({ month }: Readonly<{ month: string }>) {
   const [rows, setRows] = useState<VatReport | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -10,12 +10,12 @@ export default function VatReport() {
     let cancelled = false
     setLoading(true)
     setError(null)
-    fetchVatReport()
+    fetchVatReport(month)
       .then((data: VatReport) => { if (!cancelled) setRows(data) })
       .catch((err: unknown) => { if (!cancelled) setError((err as Error)?.message || 'Failed to load VAT report') })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
-  }, [])
+  }, [month])
 
   if (loading) return <div className="p-3 border border-gray-200 rounded-lg bg-white mt-3">Loading VAT report…</div>
   if (error) return <div className="p-3 border border-red-300 text-red-700 rounded-lg bg-white mt-3">Error: {error}</div>
