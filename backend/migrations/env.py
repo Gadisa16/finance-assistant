@@ -4,9 +4,13 @@ from alembic import context
 import os
 import sys
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'app'))
-from app.database import Base  # noqa
-from app import models  # noqa
+# Ensure project root (backend) is on sys.path so package 'app' is importable
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if BASE_DIR not in sys.path:
+    sys.path.insert(0, BASE_DIR)
+
+from app.database import Base  # noqa: E402
+import app.models  # noqa: E402
 
 config = context.config
 if config.config_file_name is not None:
