@@ -47,7 +47,7 @@ If you don’t provide these, the app uses a local stub and still works, but not
 2. Start the stack (backend, frontend, db):
 
 ```bash
-docker compose up --build -d
+docker compose up --build
 ```
 
 - Frontend: http://localhost:5173
@@ -134,7 +134,7 @@ If you prefer to run services locally without containers:
 
 ```bash
 docker compose down -v
-docker compose up --build -d
+docker compose up --build
 ```
 
 - Keep containers and just clear tables (inside Postgres):
