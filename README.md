@@ -56,7 +56,7 @@ docker compose up --build -d
 
 To follow logs: `docker compose logs -f`. To stop everything: `docker compose down`.
 
-3. Migrations: automatically applied on backend startup (first start may take a few seconds). No manual step needed.
+3. Migrations: automatically applied on backend startup. The backend waits for Postgres, runs `alembic upgrade head`, then launches the API.
 
 4. Verify services:
 
@@ -122,7 +122,7 @@ If you prefer to run services locally without containers:
 
 ## Troubleshooting
 
-- “relation \"normalized_sales\" does not exist” during upload: migrations may not have completed yet. Wait a few seconds and check `docker compose logs -f backend`. If needed, run manually: `docker compose run --rm backend alembic upgrade head` then `docker compose restart backend`.
+- “relation \"normalized_sales\" does not exist” during upload: backend may still be in the wait/migrate phase. Tail logs: `docker compose logs -f backend`. If it failed with a DB connection error, restart backend after DB is up: `docker compose restart backend`. Manual fallback: `docker compose run --rm backend alembic upgrade head`.
 - Upload fails quickly: large files may need time; backend upload timeout is extended; try again and check backend logs.
 - Month returns no data: confirm the month in the dropdown matches the data month; the backend rejects mismatched uploads.
 - Chat returns a “[LLM unavailable]” summary: verify Groq env vars and connectivity; otherwise the stub still responds using computed metrics.

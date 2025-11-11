@@ -9,6 +9,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY backend/app /app/app
 COPY backend/migrations /app/migrations
 COPY backend/alembic.ini /app/alembic.ini
+COPY backend/start.sh /app/start.sh
 EXPOSE 8000
-# Apply DB migrations automatically on container start, then launch API
-CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+# Apply DB migrations automatically on container start (with DB wait), then launch API
+CMD ["sh", "/app/start.sh"]
