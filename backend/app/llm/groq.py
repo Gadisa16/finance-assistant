@@ -95,7 +95,7 @@ async def _call_openai_compatible(model: str, system_prompt: str, user_prompt: s
             {'role': 'user', 'content': user_prompt},
         ],
     }
-    async with httpx.AsyncClient(timeout=30) as client:
+    async with httpx.AsyncClient(timeout=60) as client:
         resp = await client.post(url, headers=headers, json=payload)
         resp.raise_for_status()
         data = resp.json()

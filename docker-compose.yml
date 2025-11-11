@@ -13,6 +13,8 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
+    env_file:
+      - .env
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://postgres:postgres@db:5432/finance}
       LLM_API_URL: ${LLM_API_URL:-stub://local}

@@ -14,7 +14,7 @@ if (!baseURL && typeof globalThis !== 'undefined') {
 
 export const api = axios.create({
   baseURL,
-  timeout: 10000,
+  timeout: 60000,
 })
 
 api.interceptors.response.use(
