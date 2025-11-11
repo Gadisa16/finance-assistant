@@ -119,6 +119,12 @@ export const askChat = async (month: string, question: string): Promise<string> 
   return res.data.answer
 }
 
+export interface ChatStatus { mode: 'groq' | 'stub'; model?: string | null; api_url?: string }
+export const fetchChatStatus = async (): Promise<ChatStatus> => {
+  const res = await api.get<ChatStatus>('/chat/status')
+  return res.data
+}
+
 export interface UploadResult {
   sales_rows: number
   bank_rows: number

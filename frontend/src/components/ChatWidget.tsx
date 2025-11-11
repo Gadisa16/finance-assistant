@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { askChat, ChatMessage } from '../services/api'
+import { askChat, ChatMessage, ChatStatus, fetchChatStatus } from '../services/api'
 
 interface ChatWidgetProps {
   month: string
@@ -12,6 +12,7 @@ export default function ChatWidget({ month }: Readonly<ChatWidgetProps>) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const inputRef = useRef<HTMLInputElement | null>(null)
   const storageKey = useMemo(() => `finance-chat:${month}`, [month])
+  const [status, setStatus] = useState<ChatStatus | null>(null)
 
   // Load from localStorage when month changes
   useEffect(() => {
@@ -37,6 +38,11 @@ export default function ChatWidget({ month }: Readonly<ChatWidgetProps>) {
       // ignore quota/security errors
     }
   }, [messages, storageKey])
+
+  // Load chat status (mode/model)
+  useEffect(() => {
+    fetchChatStatus().then(setStatus).catch(() => setStatus(null))
+  }, [])
 
   async function send() {
     if (!input.trim() || loading) return
@@ -86,7 +92,19 @@ export default function ChatWidget({ month }: Readonly<ChatWidgetProps>) {
           </div>
           <div className="flex-1 p-3 overflow-y-auto space-y-3 bg-gray-50">
             {messages.length === 0 && (
-              <p className="text-gray-500 text-xs">Ask anything about the ingested month data.</p>
+              <div className="h-full flex flex-col items-center justify-center text-center text-gray-600">
+                <div className="text-4xl mb-2">🤖</div>
+                <div className="text-sm mb-1">Ask anything about the ingested data for month {month}.</div>
+                {status && (
+                  <div className="text-xs text-gray-500" title={status.api_url || ''}>
+                    {status.mode === 'groq' ? (
+                      <>LLM mode: Groq — model <span className="font-medium">{status.model || 'unknown'}</span></>
+                    ) : (
+                      <>LLM mode: Stub (offline)</>
+                    )}
+                  </div>
+                )}
+              </div>
             )}
             {messages.map(m => (
               <div

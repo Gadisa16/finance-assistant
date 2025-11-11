@@ -32,3 +32,21 @@ async def ask(req: ChatRequest, db: Session = Depends(get_db)):
     except Exception as e:
         ans = f"Unable to generate chat answer: {e}. Please ensure data is uploaded for the month."
     return ChatResponse(answer=ans)
+
+
+@router.get('/status')
+async def status():
+    """Return current LLM mode and model used by the backend.
+
+    mode: 'groq' if LLM_API_URL starts with http, otherwise 'stub'
+    model: settings.llm_model if available when mode is groq
+    """
+    is_http = bool(
+        settings.llm_api_url and settings.llm_api_url.startswith('http'))
+    mode = 'groq' if is_http else 'stub'
+    model = getattr(settings, 'llm_model', None) if is_http else None
+    return {
+        'mode': mode,
+        'model': model,
+        'api_url': settings.llm_api_url,
+    }
