@@ -42,19 +42,39 @@ LLM_API_KEY=your_groq_api_key
 LLM_MODEL=llama-3.3-70b-versatile
 ```
 
-If you don’t provide these, the app uses a local stub and still works.
+If you don’t provide these, the app uses a local stub and still works, but not effective.
 
 2. Start the stack (backend, frontend, db):
 
 ```bash
-docker compose up --build
+docker compose up --build -d
 ```
 
 - Frontend: http://localhost:5173
 - Backend: http://localhost:8000 (FastAPI docs at /docs)
 - Postgres: exposed at 5432 (internal service `db`)
 
-To stop: Ctrl+C. To run detached: `docker compose up -d`.
+To follow logs: `docker compose logs -f`. To stop everything: `docker compose down`.
+
+3. Migrations: automatically applied on backend startup (first start may take a few seconds). No manual step needed.
+
+4. Verify services:
+
+- Frontend: http://localhost:5173
+- Backend API & docs: http://localhost:8000/docs
+- Database (internal service): `db` on port 5432
+
+5. Upload your month files:
+
+- In the UI: open the Upload panel, pick month (MM), then select Sales Excel and Bank PDF.
+- Or via curl (example for September):
+
+```bash
+curl -X POST "http://localhost:8000/files/upload?month=09" \
+  -H "accept: application/json" -H "Content-Type: multipart/form-data" \
+  -F "sales_excel=@VENDAS SETEMBRO.xlsx;type=application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" \
+  -F "bank_pdf=@Extracto Bai 02 - Setembro 2025.pdf;type=application/pdf"
+```
 
 ## Configuration
 
@@ -102,7 +122,28 @@ If you prefer to run services locally without containers:
 
 ## Troubleshooting
 
+- “relation \"normalized_sales\" does not exist” during upload: migrations may not have completed yet. Wait a few seconds and check `docker compose logs -f backend`. If needed, run manually: `docker compose run --rm backend alembic upgrade head` then `docker compose restart backend`.
 - Upload fails quickly: large files may need time; backend upload timeout is extended; try again and check backend logs.
 - Month returns no data: confirm the month in the dropdown matches the data month; the backend rejects mismatched uploads.
 - Chat returns a “[LLM unavailable]” summary: verify Groq env vars and connectivity; otherwise the stub still responds using computed metrics.
 - Frontend cannot reach backend in Docker: verify `VITE_API_URL` is `http://localhost:8000` since the browser runs on the host.
+
+## Resetting data
+
+- Wipe everything (DB + uploads volume):
+
+```bash
+docker compose down -v
+docker compose up --build -d
+```
+
+- Keep containers and just clear tables (inside Postgres):
+
+```sql
+TRUNCATE normalized_sales RESTART IDENTITY CASCADE;
+TRUNCATE bank_tpa RESTART IDENTITY CASCADE;
+```
+
+## How migrations run
+
+Migrations are applied automatically by the backend on startup (`alembic upgrade head` before launching the API). If you want to switch to manual control (e.g., in local dev), change the backend command to start Uvicorn directly and run Alembic yourself.
