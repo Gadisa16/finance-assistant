@@ -89,53 +89,95 @@ def monthly_report(db: Session, month: str, recon_rows: list[dict]):
         vat_breakdown=vat_breakdown,
     )
 
-# Chat answer stub grounded: simply returns monthly report or clarifies delta explanation request
+# Chat answer stub grounded: intent-based responses kept minimal unless asked
+
+
+def _is_greeting(q: str) -> bool:
+    greetings = ['hi', 'hello', 'hey', 'ola', 'olá', 'oi',
+                 'good morning', 'good afternoon', 'good evening']
+    return any(q == g or q.startswith(g + ' ') for g in greetings)
+
+
+def _mentions_vat(q: str) -> bool:
+    return ('vat' in q) or ('iva' in q)
+
+
+def _mentions_card_cash(q: str) -> bool:
+    return ('card' in q) or ('cash' in q) or ('multicaixa' in q)
+
+
+def _mentions_top_product(q: str) -> bool:
+    return ('top product' in q) or ('top' in q and 'product' in q)
+
+
+def _mentions_peak_day(q: str) -> bool:
+    return ('peak' in q) or (('max' in q) and ('day' in q)) or (('best' in q) and ('day' in q))
+
+
+def _mentions_recon_explain(q: str) -> bool:
+    return (('why' in q) or ('explain' in q)) and ('delta' in q)
+
+
+def _mentions_report(q: str) -> bool:
+    return ('report' in q) or ('monthly' in q) or ('summary' in q) or ('overview' in q)
+
+
+def _handle_greeting(month: str) -> str:
+    return (f"Hi! I'm your finance assistant for {month}. "
+            "Ask me about VAT, card vs cash, top products, peak day, or reconciliation.")
+
+
+def _handle_vat(month: str, facts: dict) -> str:
+    parts = [f"{int(rate)}%: {amt:.2f}" for rate, amt in facts['vat_rows']]
+    if not parts:
+        return f"No VAT data found for month {month}."
+    return f"VAT breakdown for {month}: " + ', '.join(parts) + f". Total VAT: {facts['vat']:.2f}."
+
+
+def _handle_card_cash(month: str, facts: dict) -> str:
+    return (
+        f"Card vs Cash ({month}): Card {facts['card']:.2f} which is {facts['card_share']:.2f}% of gross {facts['gross']:.2f}."
+    )
+
+
+def _handle_top_product(month: str, facts: dict) -> str:
+    return f"Top product in {month}: {facts['top_product']} with peak day {facts['peak_day']} ({facts['peak_gross']:.2f})."
+
+
+def _handle_peak_day(month: str, facts: dict) -> str:
+    return f"Peak sales day in {month}: {facts['peak_day']} with gross {facts['peak_gross']:.2f}."
+
+
+def _handle_recon_explain(month: str, recon_rows: list[dict]) -> str:
+    largest = sorted(recon_rows, key=lambda r: abs(
+        r['delta']), reverse=True)[:3]
+    if not largest:
+        return f"No reconciliation rows found for {month}."
+    parts = [
+        f"{r['date']}: delta {float(r['delta']):.2f} (fees {float(r['fees']):.2f}, bank {float(r['bank_tpa']):.2f})"
+        for r in largest
+    ]
+    return "Reconciliation mismatches: " + '; '.join(parts)
 
 
 def answer(db: Session, month: str, question: str, recon_rows: list[dict]):
-    q = (question or '').lower()
-    f = _facts(db, month, recon_rows)
+    q = (question or '').lower().strip()
+    facts = _facts(db, month, recon_rows)
 
-    # Intent: detailed VAT breakdown
-    if 'vat' in q or 'iva' in q:
-        parts = [f"{int(rate)}%: {amt:.2f}" for rate, amt in f['vat_rows']]
-        if not parts:
-            return f"No VAT data found for month {month}."
-        return f"VAT breakdown for {month}: " + ', '.join(parts) + f". Total VAT: {f['vat']:.2f}."
+    # Intent routing table to reduce branching complexity
+    routes: list[tuple[callable, callable]] = [
+        (_is_greeting, lambda: _handle_greeting(month)),
+        (_mentions_vat, lambda: _handle_vat(month, facts)),
+        (_mentions_card_cash, lambda: _handle_card_cash(month, facts)),
+        (_mentions_top_product, lambda: _handle_top_product(month, facts)),
+        (_mentions_peak_day, lambda: _handle_peak_day(month, facts)),
+        (_mentions_recon_explain, lambda: _handle_recon_explain(month, recon_rows)),
+        (_mentions_report, lambda: monthly_report(db, month, recon_rows)),
+    ]
 
-    # Intent: card vs cash split
-    if 'card' in q or 'cash' in q or 'multicaixa' in q:
-        return (
-            f"Card vs Cash ({month}): Card {f['card']:.2f} which is {f['card_share']:.2f}% of gross {f['gross']:.2f}."
-        )
+    for predicate, handler in routes:
+        if predicate(q):
+            return handler()
 
-    # Intent: top product / top customer (we have only product here)
-    if 'top product' in q or ('top' in q and 'product' in q):
-        return f"Top product in {month}: {f['top_product']} with peak day {f['peak_day']} ({f['peak_gross']:.2f})."
-
-    # Intent: peak day / daily max
-    if 'peak' in q or ('max' in q and 'day' in q) or ('best' in q and 'day' in q):
-        return f"Peak sales day in {month}: {f['peak_day']} with gross {f['peak_gross']:.2f}."
-
-    # Intent: reconciliation delta explanation
-    if ('why' in q or 'explain' in q) and 'delta' in q:
-        largest = sorted(recon_rows, key=lambda r: abs(
-            r['delta']), reverse=True)[:3]
-        if not largest:
-            return f"No reconciliation rows found for {month}."
-        parts = [
-            f"{r['date']}: delta {float(r['delta']):.2f} (fees {float(r['fees']):.2f}, bank {float(r['bank_tpa']):.2f})"
-            for r in largest
-        ]
-        return "Reconciliation mismatches: " + '; '.join(parts)
-
-    # Intent: general monthly report
-    if 'report' in q or 'monthly' in q or 'summary' in q or 'overview' in q:
-        return monthly_report(db, month, recon_rows)
-
-    # Default: brief contextual response
-    return (
-        f"{month} summary: Gross {f['gross']:.2f}, VAT {f['vat']:.2f}, Net {f['net']:.2f}. "
-        f"Card share {f['card_share']:.2f}%. Peak day {f['peak_day']} ({f['peak_gross']:.2f}). "
-        f"Delta sum {f['delta_sum']:.2f}, fees total {f['fees_total']:.2f}."
-    )
+    # Default: brief contextual response — just a compact summary
+    return (f"{month} summary available. Ask for VAT, card vs cash, top products, peak day, or a monthly report.")

@@ -115,20 +115,51 @@ def format_facts_as_text(facts: Dict) -> str:
     )
 
 
+def _is_greeting(text: str) -> bool:
+    q = (text or '').strip().lower()
+    greetings = [
+        'hi', 'hello', 'hey', 'ola', 'olá', 'oi',
+        'good morning', 'good afternoon', 'good evening'
+    ]
+    return any(q == g or q.startswith(g + ' ') for g in greetings)
+
+
+def _mentions_recon(text: str) -> bool:
+    q = (text or '').lower()
+    keywords = ['recon', 'reconcile', 'reconciliation',
+                'delta', 'fees', 'mismatch', 'difference']
+    return any(k in q for k in keywords)
+
+
 async def answer_groq(db: Session, month: str, question: str, recon_rows: List[Dict]) -> str:
     facts = _collect_facts(db, month, recon_rows)
-    # If no sales data, short-circuit with grounded reply
+    # No data short-circuit
     if facts['gross'] == 0 and facts['net'] == 0:
         return "No sales data found for the selected month. Please upload the Excel/PDF and try again."
 
+    # Greeting short-circuit: don't dump metrics on greetings
+    if _is_greeting(question):
+        return (
+            f"Hi! I'm your finance assistant for {month}. "
+            "Ask me about VAT, card vs cash, top products, peak day, or reconciliation."
+        )
+
+    # Build prompts with instruction gating
     system = (
-        "You are a finance analyst. Only answer using the facts provided. "
-        "If a value is missing, say you don't have that data. Keep answers concise (8–12 sentences)."
+        "You are a finance analyst. Answer ONLY what the user asked for, using the provided facts. "
+        "Do NOT include unrelated metrics. If the user didn't ask about reconciliation, do not mention it. "
+        "If a value is missing, say you don't have that data. Keep answers concise (4–8 sentences)."
     )
+
+    recon_note = (
+        "If and ONLY if the user's question asks about reconciliation, delta, fees, mismatch or difference, "
+        "then discuss reconciliation and explain mismatches using fees and daily info if available."
+    ) if _mentions_recon(question) else ""
+
     user = (
         f"Question: {question}\n\n"
         f"Facts (ground truth):\n{format_facts_as_text(facts)}\n\n"
-        "Explain reconciliation mismatches if delta_sum != 0 by referencing fees and days."
+        f"{recon_note}"
     )
     # Choose model from settings (backend env), defaulting to Groq's recommended 70B versatile
     model = getattr(settings, 'llm_model', None) or 'llama-3.3-70b-versatile'
