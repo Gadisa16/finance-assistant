@@ -1,15 +1,19 @@
 import axios, { AxiosError, AxiosResponse } from 'axios'
 
-// Resolve API base URL robustly for both Docker and local dev
-const envUrl: string | undefined = (import.meta as any)?.env?.VITE_API_URL
+// Resolve API base URL for both Docker and local dev.
+// IMPORTANT: Use direct access so Vite replaces at build time.
+const envUrl: string | undefined = import.meta.env.VITE_API_URL
 let baseURL = envUrl
 if (!baseURL && typeof globalThis !== 'undefined') {
   const host = (globalThis as any)?.location?.hostname
-  // If opened from host browser (localhost), default to backend on localhost
-  // Otherwise (rare), keep Docker service fallback
-  baseURL = (host === 'localhost' || host === '127.0.0.1')
-    ? 'http://localhost:8000'
-    : 'http://backend:8000'
+  // In local development, fall back to localhost backend.
+  if (host === 'localhost' || host === '127.0.0.1') {
+    baseURL = 'http://localhost:8000'
+  } else {
+    // In production, require VITE_API_URL to be set at build time.
+    // Avoid defaulting to Docker internal host to prevent mixed content.
+    console.warn('VITE_API_URL not set; API baseURL is undefined in production environment.')
+  }
 }
 
 export const api = axios.create({
