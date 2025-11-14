@@ -11,8 +11,12 @@ if BASE_DIR not in sys.path:
 
 from app.database import Base  # noqa: E402
 import app.models  # noqa: E402
+from app.config import settings  # noqa: E402
 
 config = context.config
+# Override alembic.ini sqlalchemy.url with runtime DATABASE_URL if provided (e.g. Render/Neon)
+if settings.database_url:
+    config.set_main_option("sqlalchemy.url", settings.database_url)
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
