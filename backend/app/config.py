@@ -23,7 +23,7 @@ class Settings:
             "LLM_MODELS") or "llama-3.3-70b-versatile"
         self.llm_model: str = (raw_models.split(
             ",")[0].strip() if raw_models else "llama-3.3-70b-versatile")
-        self.upload_dir: str = os.getenv("UPLOAD_DIR", "/data/uploads")
+        self.upload_dir: str = os.getenv("UPLOAD_DIR", "./data")
         self.alembic_ini: str = os.getenv("ALEMBIC_INI", "/app/alembic.ini")
 
 
